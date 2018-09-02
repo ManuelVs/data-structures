@@ -1,3 +1,7 @@
+.vscode/
+build/
+
+# Below are GitHub's default rules
 # Prerequisites
 *.d
 
