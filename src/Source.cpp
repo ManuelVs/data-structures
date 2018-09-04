@@ -14,6 +14,13 @@ void print_heap(T heap){
 	}
 }
 
+/**
+ * @brief Main function
+ * 
+ * @param argc number of arguments
+ * @param argv array of arguments
+ * @return int result code
+ */
 int main(int argc, const char *argv[]) {
 	std::cout << "hello Visual Studio Code! :)" << '\n';
 
