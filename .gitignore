@@ -1,6 +1,8 @@
 .vscode/
 build/
 
+docs/doxy_docs
+
 # Below are GitHub's default rules
 # Prerequisites
 *.d

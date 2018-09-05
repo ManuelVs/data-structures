@@ -4,6 +4,18 @@
 #include <functional>
 #include <stdexcept>
 
+/**
+ * @brief WilliamHeap or BinaryHeap <br>
+ * Implements a heap using a vector <br>
+ * Element priority can be defined using the Comparator <br>
+ * Element allocations are made using the Allocator <br>
+ * This implementation is famous due to the Heapsort algorithm, whose base is based on
+ * the WilliamHeap
+ * @sa https://en.wikipedia.org/wiki/Binary_heap
+ * @tparam T Elements' type this heap will store
+ * @tparam Comparator Comparator between keys
+ * @tparam Allocator Keys' allocator
+ */
 template<typename T, class Comparator = std::greater<T>, class Allocator = std::allocator<T>>
 class WilliamHeap {
 protected:
@@ -140,44 +152,57 @@ protected:
 	}
 
 	T p_pop() {
-		if (!empty()) {
-			T key = std::move(vector[0]);
-			vector[0] = std::move(vector[--num_elems]);
-			p_sink(0);
-			return key;
-		}
-		else throw std::domain_error("Empty heap");
+		T key = std::move(vector[0]);
+		vector[0] = std::move(vector[--num_elems]);
+		p_sink(0);
+		return key;
 	}
 
 public:
 
-	//Default constructor
-	//Time complexity: O(1)
+	/**
+	 * @brief Construct a new William Heap object
+	 * 
+	 * @param c Comparator to be used
+	 * @param alloc Allocator to be used
+	 */
 	WilliamHeap(Comparator c = Comparator(), Allocator alloc = Allocator()) {
 		this->p_new(c, alloc);
 	}
 
-	//Copy constructor
-	//Time complexity: O(other.size())
+	/**
+	 * @brief Construct a new William Heap object by copy
+	 * Time complexity: O(other.size())
+	 * @param other The other heap to copy
+	 */
 	WilliamHeap(WilliamHeap const& other) {
 		this->p_copy(other);
 	}
 
-	//Move constructor
-	//Time complexity: O(1)
+	/**
+	 * @brief Construct a new William Heap object by move
+	 * Time complexity: O(1)
+	 * @param other The other heap to move
+	 */
 	WilliamHeap(WilliamHeap&& other) noexcept {
 		this->p_move(other);
 	}
 
-	//Destructor
-	//Time complexity: O(this->size())
+	/**
+	 * @brief Destroy the William Heap object
+	 * Time complexity: O(this->size())
+	 */
 	~WilliamHeap() {
 		this->p_delete();
 	}
 
-	//Copy assignment operator
-	//Time complexity: O(other.size() + this->size())
-	// - Because delete operator costs O(n)
+	/**
+	 * @brief Copy assignment operator
+	 * Time complexity: O(other.size() + this->size())
+	 *  - Because delete operator costs O(n)
+	 * @param other The other heap to copy
+	 * @return WilliamHeap& Reference to *this
+	 */
 	WilliamHeap& operator=(WilliamHeap const& other) {
 		if (this != &other) {
 			this->p_delete();
@@ -186,9 +211,13 @@ public:
 		return *this;
 	}
 
-	//Move assignment operator
-	//Time complexity: O(this->size())
-	// - Because delete operator costs O(n)
+	/**
+	 * @brief Move assignment operator
+	 * Time complexity: O(this->size())
+	 *  - Because delete operator costs O(n)
+	 * @param other The other heap to move
+	 * @return WilliamHeap& Reference to *this
+	 */
 	WilliamHeap& operator=(WilliamHeap&& other) noexcept {
 		if (this != &other) {
 			this->p_delete();
@@ -197,58 +226,93 @@ public:
 		return *this;
 	}
 
-	//Swap the two heaps
-	//Time complexity: O(1)
+	/**
+	 * @brief Swap the two heaps
+	 * Time complexity: O(1)
+	 * @param other The other heap to swap with
+	 */
 	void swap(WilliamHeap& other) {
 		this->p_swap(other);
 	}
 
-	//Push 'elem' to the heap, copying it
-	//Time complexity: O(log(this->size) + O(elem copy))
+	/**
+	 * @brief Push 'elem' to the heap, copying it
+	 * Time complexity: O(log(this->size) + O(elem copy))
+	 * @param elem The elem to be pushed
+	 */
 	void push(T const& elem) {
 		this->p_emplace(elem);
 	}
 
-	//Push 'elem' to the heap, moving it
-	//Time complexity: O(log(this->size) + O(elem move))
+	/**
+	 * @brief Push 'elem' to the heap, moving it
+	 * Time complexity: O(log(this->size) + O(elem move))
+	 * @param elem lvalue reference to the elem to be pushed
+	 */
 	void push(T&& elem) {
 		this->p_emplace(std::move(elem));
 	}
 
-	//Push 'elem' to the heap, creating it
-	//Time complexity: O(log(this->size) + O(elem creation))
+	/**
+	 * @brief Construct element directly on the heap
+	 * Time complexity: O(log(this->size) + O(elem creation))
+	 * @tparam Args Template parameter list, type parameters of the object constructor
+	 * @param args Parameters list of the object constructor
+	 */
 	template <class... Args>
 	void emplace(Args&&... args) {
-		this->p_emplace(args...);
+		this->p_emplace(std::forward<Args>(args)...);
 	}
 
-	//Pop element from the heap
-	//Time complexity: O(log(this->size))
+	/**
+	 * @brief Pop element from the heap
+	 * Time complexity: O(log(this->size))
+	 * @return T Element popped
+	 */
 	T pop() {
+		if (empty()) throw std::domain_error("Empty heap");
 		return p_pop();
 	}
 
-	//Consult top element of the heap
-	//Time complexity: O(1)
+	/**
+	 * @brief Consult top element of the heap
+	 * Time complexity: O(1)
+	 * @return T const& Reference to the top element
+	 */
 	T const& top() const {
+		if (empty()) throw std::domain_error("Empty heap");
 		return vector[0];
 	}
 
-	//If heap empty.
-	//Time complexity: O(1)
+	/**
+	 * @brief If heap empty
+	 * Time complexity: O(1)
+	 * @return If heap empty
+	 */
 	bool empty() const {
 		return this->num_elems == 0;
 	}
 
-	//Number of elements.
-	//Time complexity: O(1)
+	/**
+	 * @brief Number of elements
+	 * Time complexity: O(1)
+	 * @return std::size_t Number of elements
+	 */
 	std::size_t size() const {
 		return this->num_elems;
 	}
 };
 
-// Time complexity: O(1)
-// ADL finds this swap
+/**
+ * @brief Swaps the two heaps
+ * Time complexity: O(1)
+ * This implementation is intended to be found by the ADL algorithm
+ * @tparam T Same as class documentation
+ * @tparam Comparator Same as class documentation
+ * @tparam Allocator Same as class documentation
+ * @param lhs Left heap
+ * @param rhs Right heap
+ */
 template<typename T, class Comparator, class Allocator>
 void swap(WilliamHeap<T, Comparator, Allocator>& lhs, WilliamHeap<T, Comparator, Allocator>& rhs) {
 	lhs.swap(rhs);

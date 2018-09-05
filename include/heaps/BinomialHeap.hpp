@@ -4,6 +4,15 @@
 #include <functional>
 #include <stdexcept>
 
+/**
+ * @brief Heap
+ * Element priority can be defined using the Comparator <br>
+ * Element allocations are made using the Allocator <br>
+ * @see https://es.wikipedia.org/wiki/Heap_Binomial
+ * @tparam T Elements' type this heap will store
+ * @tparam Comparator Comparator between keys
+ * @tparam Allocator Keys' allocator
+ */
 template <typename T, class Comparator = std::greater<T>, class Allocator = std::allocator<T>>
 class BinomialHeap {
 protected:
@@ -15,7 +24,7 @@ protected:
 		Node* sibling;
 		Node* child;
 	};
-	std::allocator<Node> node_alloc; //default constructor
+	std::allocator<Node> node_alloc;
 
 	Comparator greater;
 	Allocator alloc;
@@ -23,6 +32,19 @@ protected:
 	Node* _root;
 	Node* _greater;
 	std::size_t _size;
+
+	template<class... Args>
+	Node* p_create(Args&&... args) {
+		Node* node = node_alloc.allocate(1);
+
+		alloc.construct(&node->key, std::forward<Args>(args)...);
+		node->degree = 0;
+		node->father = nullptr;
+		node->sibling = nullptr;
+		node->child = nullptr;
+
+		return node;
+	}
 
 	void p_delete(Node* root) {
 		if (root != nullptr) {
@@ -35,7 +57,7 @@ protected:
 
 	Node* p_copy(Node* root) {
 		if (root == nullptr) return nullptr;
-		Node* new_node = new Node(*root);
+		Node* new_node = p_create(root->key); //copy key
 		new_node->child = p_copy(root->child);
 		new_node->sibling = p_copy(root->sibling);
 		return new_node;
@@ -81,27 +103,17 @@ protected:
 		std::swap(this->_size, other._size);
 	}
 
-	template<class... Args>
-	Node* p_create(Args&&... args) {
-		Node* node = node_alloc.allocate(1);
-
-		alloc.construct(&node->key, std::forward<Args>(args)...);
-		node->degree = 0;
-		node->father = nullptr;
-		node->sibling = nullptr;
-		node->child = nullptr;
-
-		return node;
-	}
-
-	/*
-	* Merge h1 and h2 heaps. Returns the initial root.
-	* All intermediate pointers are reasigned, so the user
-	* must suppose that h1 and h2 stays in a 'bad' state.
-	* This *DOES NOT* link equal degree nodes.
-	* Time complexity: O(length(h1) + length(h2));
-	*/
-	Node* p_merge(Node* h1, Node* h2) {
+	/**
+	 * @brief Merge h1 and h2 lists. Returns the initial root.
+	 * All intermediate pointers are reasigned, so the user
+	 * must suppose that h1 and h2 stays in a 'bad' state.
+	 * This *DOES NOT* link equal degree nodes.
+	 * Time complexity: O(length(h1) + length(h2));
+	 * @param h1 First heap
+	 * @param h2 Second heap
+	 * @return Node* Initial root of merge result
+	 */
+	Node* p_merge_list(Node* h1, Node* h2) {
 		if (h1 != nullptr && h2 == nullptr) return h1;
 		if (h1 == nullptr && h2 != nullptr) return h2;
 		if (h1 == nullptr && h2 == nullptr) return nullptr;
@@ -141,11 +153,6 @@ protected:
 		return orig;
 	}
 
-	/*
-	* Vincula a father child
-	* Coste en tiempo: O(degree(father));
-	* Coste en memoria: O(1);
-	*/
 	void p_link(Node* father, Node* child) {
 		if (father->degree == 0) {
 			father->child = child;
@@ -176,7 +183,7 @@ protected:
 	}
 
 	Node* p_union(Node* h1, Node* h2) {
-		Node* head = p_merge(h1, h2);
+		Node* head = p_merge_list(h1, h2);
 		if (head == nullptr) return nullptr;
 
 		Node* nAnt = nullptr;
@@ -228,12 +235,7 @@ protected:
 		++this->_size;
 	}
 
-	/**
-	* Elimina el nodo min de root. min debe estar en la
-	* lista principal, si se monta una buena fiesta.
-	* min es de entrada-salida
-	* Devuelve el primer nodo del heap resultante
-	*/
+
 	T p_pop() {
 		Node* iter = this->_root;
 		Node* ant = nullptr;
@@ -269,33 +271,50 @@ protected:
 
 public:
 
-	//Default constructor
-	//Time complexity: O(1)
+	/**
+	 * @brief Construct a new Binomial Heap object
+	 * Time complexity: O(1)
+	 * @param c 
+	 * @param alloc 
+	 */
 	BinomialHeap(Comparator c = Comparator(), Allocator alloc = Allocator()) {
 		this->p_new(c, alloc);
 	}
 
-	//Copy constructor
-	//Time complexity: O(other.size())
+	/**
+	 * @brief Construct a new Binomial Heap object by copy
+	 * Time complexity: O(other.size())
+	 * @param other The other heap to copy
+	 */
 	BinomialHeap(BinomialHeap const& other) {
 		this->p_copy(other);
 	}
 
-	//Move constructor
-	//Time complexity: O(1)
+	/**
+	 * @brief Construct a new Binomial Heap object by move
+	 * Time complexity: O(1)
+	 * @param other The other heap to move
+	 */
 	BinomialHeap(BinomialHeap&& other) {
 		this->p_move(other);
 	}
 
-	//Destructor
-	//Time complexity: O(this->size())
+	/**
+	 * @brief Destroy the Binomial Heap object
+	 * Time complexity: O(this->size())
+	 *  - Because delete operator costs O(n)
+	 */
 	~BinomialHeap() {
 		this->p_delete();
 	}
 
-	//Copy assignment operator
-	//Time complexity: O(other.size() + this->size())
-	// - Because delete operator costs O(n)
+	/**
+	 * @brief Copy assignment operator
+	 * Time complexity: O(other.size() + this->size())
+	 *  - Because delete operator costs O(n)
+	 * @param other The other heap to copy
+	 * @return BinomialHeap& Reference to *this
+	 */
 	BinomialHeap& operator=(BinomialHeap const& other) {
 		if (this != &other) {
 			this->p_delete();
@@ -304,9 +323,13 @@ public:
 		return *this;
 	}
 
-	//Move assignment operator
-	//Time complexity: O(this->size())
-	// - Because delete operator costs O(n)
+	/**
+	 * @brief Move assignment operator
+	 * Time complexity: O(this->size())
+	 *  - Because delete operator costs O(n)
+	 * @param other The other heap to move
+	 * @return BinomialHeap& Reference to *this
+	 */
 	BinomialHeap& operator=(BinomialHeap&& other) noexcept {
 		if (this != &other) {
 			this->p_delete();
@@ -315,60 +338,84 @@ public:
 		return *this;
 	}
 
-	//Swap the two heaps
-	//Time complexity: O(1)
+	/**
+	 * @brief Swap the two heaps
+	 * Time complexity: O(1)
+	 * @param other The other heap
+	 */
 	void swap(BinomialHeap& other) {
 		this->p_swap(other);
 	}
 
-	//Push 'elem' to the heap, copying it
-	//Time complexity: O(log(this->size) + O(elem copy))
+	/**
+	 * @brief Push 'elem' to the heap, copying it
+	 * Time complexity: O(log(this->size()) + copy)
+	 * @param key element to push
+	 */
 	void push(T const& key) {
 		this->p_emplace(key);
 	}
 
-	//Push 'elem' to the heap, moving it
-	//Time complexity: O(log(this->size) + O(elem move))
+	/**
+	 * @brief Push 'elem' to the heap, moving it
+	 * Time complexity: O(log(this->size()) + move)
+	 * @param key element to push
+	 */
 	void push(T&& key) {
 		this->p_emplace(std::move(key));
 	}
 
-	//Push 'elem' to the heap, creating it
-	//Time complexity: O(log(this->size) + O(elem creation))
+	/**
+	 * @brief Push 'elem' to the heap, creating it
+	 * Time complexity: O(log(this->size()) + creation)
+	 * @tparam Args List of types to the object constructor
+	 * @param args Parameters to the object constructor
+	 */
 	template <class... Args>
 	void emplace(Args&&... args) {
-		this->p_emplace(args...);
+		this->p_emplace(std::forward<Args>(args)...);
 	}
 
-	//Pop element from the heap
-	//Time complexity: O(log(this->size))
+	/**
+	 * @brief Pop element from the heap
+	 * Time complexity: O(log(this->size))
+	 */
 	T pop() {
 		if (empty()) throw std::domain_error("Empty heap");
-		return this->p_pop();;
+		return this->p_pop();
 	}
 
-	//Consult top element of the heap
-	//Time complexity: O(1)
+	/**
+	 * @brief Consult top element of the heap
+	 * Time complexity: O(1)
+	 */
 	T const& top() const {
 		if (empty()) throw std::domain_error("Empty heap");
 		return this->_greater->key;
 	}
 
-	//If heap empty.
-	//Time complexity: O(1)
+	/**
+	 * @brief If heap empty
+	 * Time complexity: O(1)
+	 */
 	bool empty() const {
 		return _root == nullptr;
 	}
 
-	//Number of elements.
-	//Time complexity: O(1)
+	/**
+	 * @brief Number of elements
+	 * Time complexity: O(1)
+	 */
 	std::size_t size() const {
 		return this->_size;
 	}
 };
 
-// Time complexity: O(1)
-// ADL finds this swap
+/**
+ * @brief Time complexity: O(1)
+ * ADL finds this swap
+ */
+
 template<typename T, class C, class A>
 void swap(BinomialHeap<T, C, A>& lhs, BinomialHeap<T, C, A>& rhs) {
 	lhs.swap(rhs);
