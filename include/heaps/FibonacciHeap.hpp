@@ -22,7 +22,7 @@ protected:
 	struct Node {
 		T key;
 		bool mark;
-		int degree;
+		std::size_t degree;
 
 		Node* father;
 		Node* siblingLeft;
@@ -418,7 +418,7 @@ protected:
 	T p_pop() {
 		Node* z = this->min;
 		if (z != nullptr) {
-			int i = 0;
+			std::size_t i = 0;
 			Node* it = z->child;
 			while (i < z->degree) {
 				// Desgraciadamente, hay que hacer este bucle, ya que hay que:
