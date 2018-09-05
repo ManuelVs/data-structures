@@ -4,106 +4,157 @@
 #include <stdexcept>
 #include <ostream>
 #include <string>
+#include <functional>
 
 // FibonacciHeap
 // Una implementación de los montículos de Fibonacci
 // Manuel Velasco Suárez
 // Estructura de datos necesaria para la práctica de MARP
 // T: Tipo de la clave
-template <typename T>
+template <typename T, class Comparator = std::greater<T>, class Allocator = std::allocator<T>>
 class FibonacciHeap
 {
-public:
-	// Esta estructura contiene todo lo necesario
-	// para representar un nodo en el monículo de fibonacci
+protected:
+	/**
+	 * @brief This struct contains all what is needed to represent a node in this
+	 * FibonacciHeap
+	 */
 	struct Node {
-		T key;              //La clave
-		bool mark;          //Si esta marcado
-		int degree;         //El grado, es decir, el numero de hijos
+		T key;
+		bool mark;
+		int degree;
 
-		Node* father;       //Puntero al padre
-		Node* siblingLeft;  //Puntero al hermano izquierdo
-		Node* siblingRight; //Puntero al hermano derecho
-		Node* child;        //Puntero a un hijo
+		Node* father;
+		Node* siblingLeft;
+		Node* siblingRight;
+		Node* child;
 	};
 
-protected:
-	// Puntero al minimo
-	Node* min;
-	// Tamaño del monticulo
-	int _size;
-	// El grado maximo de un nodo
-	int maxDegree;
+	std::allocator<Node> node_alloc;
 
-	// Crea un nodo vacio con la clave
-	// Se hace una copia de la clave
-	// Se enlaza a si mismo, para facilitar futuras operaciones
-	// O(1)
-	Node* p_create(T const& key) {
-		Node* node = new Node;
-		node->key = key;
+	Comparator comparator;
+	Allocator alloc;
+
+	Node* min;
+	std::size_t _size;
+
+	/**
+	 * @brief Create an empy node constructing the element on it. <br>
+	 * The node is linked to itself, this makes easier future operations. <br>
+	 * Time complexity: O(object_creation)
+	 * @tparam Args List of type params of the object constructor
+	 * @param args List of params of the object Constructor
+	 * @return Node* Created node
+	 */
+	template<class... Args>
+	Node* p_create(Args&&... args) {
+		Node* node = node_alloc.allocate(1);
+		alloc.construct(&node->key, std::forward<Args>(args)...);
+
 		node->mark = false;
 		node->degree = 0; //No tiene hijos
-
 		node->father = node->child = nullptr; //No tiene padre ni hijos
 		node->siblingLeft = node->siblingRight = node; //Se enlaza a si mismo
 
 		return node;
 	}
 
-	// Duplica toda la informacion de un nodo, duplicando tambien
-	// a los hijos. Es util a la hora de clonar la estructura.
-	// O(n); n = numero de "descendientes" y el mismo
-	Node* p_duplicate(Node* other, Node* father) {
-		if (other == nullptr) return nullptr;
+	/**
+	 * @brief Deallocates a node, its childs and its siblings.
+	 * @param node Node to deallocate
+	 */
+	void p_delete(Node* node){
+		if(node != nullptr){
+			Node* siblingLeft = node->siblingLeft;
+			siblingLeft->siblingRight = nullptr;
 
-		Node* node = new Node;
-		node->key = other->key; //Se copia la clave
-		node->degree = other->degree;
-		node->father = father;
-		node->siblingLeft = node->siblingRight = node; // Se enlaza a si mismo, es util a continuacion
+			p_delete(node->child);
+			p_delete(node->siblingRight);
 
-		if (other->child != nullptr) { // Si tiene hijos
-			Node* firstChild = other->child; // Esto servira para saber cuando acabar el bucle
-			node->child = p_duplicate(firstChild, node); //Se duplica el primero y servira como "raiz"
+			alloc.destroy(&node->key);
+			node_alloc.deallocate(node, 1);
+		}
+	}
+
+	/**
+	 * @brief Duplicates the node and its childs, NOT ITS SIBLINGS <br>
+	 * @param node Node to duplicate
+	 * @param father Its new father (it shouldnt be here...)
+	 * @return Node* New node
+	 */
+	Node* p_copy(Node* node, Node* father) {
+		if (node == nullptr) return nullptr;
+
+		Node* new_node = p_create(node->key); //copy key
+		new_node->mark = node->mark;
+		new_node->degree = node->degree;
+		new_node->father = father;
+
+		if(new_node->child == nullptr) new_node->child = nullptr; 
+		else { // Si tiene hijos
+			Node* firstChild = node->child; // Esto servira para saber cuando acabar el bucle
+			new_node->child = p_copy(firstChild, new_node); //Se duplica el primero y servira como "raiz"
 
 			Node* it = firstChild->siblingLeft; //Se visita el hermano izquierdo
 			while (it != firstChild) { //Si no hemos llegado al primero
-				Node* dupl = p_duplicate(it, node); //entonces se duplica
-				p_insertToLeft(dupl, node->child); //se inserta a la izquierda de la "raiz"
+				Node* dupl = p_copy(it, new_node); //entonces se duplica
+				p_insertToLeft(dupl, new_node->child); //se inserta a la izquierda de la "raiz"
 
 				it = it->siblingLeft; // y se visita de nuevo al hermano izquierdo
 			}
 		}
-		else {
-			// No tenia hijos
-			node->child = nullptr; 
-		}
 
 		// No se conserva el orden inicial, pero no es algo que nos importe
-		return node;
+		return new_node;
 	}
 
-	// Elimina un nodo y sus hijos
-	// O(n); n = numero de "descendientes" y el mismo
-	void p_delete(Node* node) {
-		if (node == nullptr) return;
-		
-		Node* it = node->child; //Servira como iterador
-		int i = 0;
-		while (i < node->degree) { //Se tiene que ejecutar tantas veces como hijos tenga
-			Node* aux = it; // Se guarda para poder visitar al hermano
-			it = it->siblingLeft; // Se avanza
-			p_delete(aux); // Se elimina el hermano derecho
+	void p_default() {
+		this->min = nullptr;
+		this->_size = 0;
+	}
 
-			++i; // Se avanza
+	void p_new(Comparator c = Comparator(), Allocator alloc = Allocator()) {
+		this->p_default();
+		this->comparator = c;
+		this->alloc = alloc;
+	}
+
+	void p_delete() {
+		this->p_delete(this->min);
+	}
+
+	void p_copy(FibonacciHeap<T> const& other) noexcept {
+		if (other.min == nullptr) {
+			this->min = nullptr;
+			this->_size = 0;
 		}
+		else {
+			this->min = p_copy(other.min, nullptr);
 
-		delete node; // Se elimina al fin el mismo
+			Node* it = other.min->siblingLeft;
+			while (it != other.min) {
+				Node* dupl = p_copy(it, nullptr);
+				p_insertToLeft(dupl, this->min);
+
+				it = it->siblingLeft;
+			}
+
+			this->_size = other._size;
+		}
 	}
 
-	// Inserta un nodo a la izquierda de otro
-	// O(1)
+	void p_move(FibonacciHeap<T>& other) noexcept {
+		this->min = other.min;
+		this->_size = other._size;
+
+		other.p_default();
+	}
+
+	/**
+	 * @brief Insert the node to the left of origin
+	 * @param toInsert Node to insert
+	 * @param origin Its new sibling
+	 */
 	void p_insertToLeft(Node* toInsert, Node* origin) {
 		Node* aux = origin->siblingLeft; // Se guarda un puntero del hermano izquierdo
 
@@ -114,8 +165,11 @@ protected:
 		aux->siblingRight = toInsert; //A la derecha debe estar el nuevo nodo
 	}
 
-	// Elimina a un nodo la lista a la que pertenece
-	// O(1)
+	/**
+	 * @brief Unlink a node from the list belongs <br>
+	 * The node is linked to itself
+	 * @param node The node to unlink
+	 */
 	void p_delFromList(Node* node) {
 		// Elimina el nodo de la lista, enlazando entre sí a sus hermanos
 		Node* left = node->siblingLeft; //Se guarda el izquierdo
@@ -130,8 +184,11 @@ protected:
 		node->siblingLeft = node->siblingRight = node; //Se enlaza a si mismo, esto es util
 	}
 
-	// Enlaza a y como hijo de x
-	// O(1)
+	/**
+	 * @brief Converts 'y' to child of 'x'
+	 * @param x New father
+	 * @param y New child
+	 */
 	void p_link(Node* x, Node* y){
 		// Pone a y como hijo de x
 		y->father = x;
@@ -151,9 +208,11 @@ protected:
 		}
 	}
 
-	// Consolida el montículo
-	// Coste peor: O(n); n = numero de elementos
-	// Coste amortizado: O(log(n)); n = numero de elementos
+	/**
+	 * @brief Consolidate the heap
+	 * Time complexity: O(this->size)
+	 * Amortized time complexity: O(log(this->size))
+	 */
 	void p_consolidate() {
 		// No se sabe de qué tamaño debe ser el array, así que opte por un hashmap
 		std::unordered_map<int, Node*> a;
@@ -173,7 +232,7 @@ protected:
 				// Uno de los dos se debe colgar del otro, por convenio sera siempre x
 				Node* y = a[d]; // El nodo que tiene el mismo grado
 
-				if (y->key < x->key) {
+				if (comparator(y->key, x->key)) {
 					// x siempre tiene la clave pequeña
 					std::swap(x, y);
 				}
@@ -194,23 +253,22 @@ protected:
 		// Hay que encontrar el nuevo mínimo
 		auto it = a.begin();
 		this->min = it->second;
-		this->maxDegree = it->second->degree;
 		++it;
 		while (it != a.end()) {
 			// Se recorre el "array"
 			p_insertToLeft(it->second, this->min); //Se inserta este nodo a la izquierda del minimo
-			if (it->second->key < this->min->key) {
+			if (comparator(it->second->key, this->min->key)) {
 				this->min = it->second; //Si se encuentra un nuevo minimo, se actualiza
-			}
-			if (this->maxDegree < it->second->degree) {
-				this->maxDegree = it->second->degree; // Si se encuentra un nodo con mayor grado, se actualiza
 			}
 			++it;
 		}
 	}
 
-	// Quita el hijo x de y
-	// O(1)
+	/**
+	 * @brief Unlinks x from y
+	 * @param x Child to unlink
+	 * @param y Father
+	 */
 	void p_cut(Node* x, Node* y) {
 		//Corta x, hijo de y
 		--y->degree;
@@ -238,12 +296,11 @@ protected:
 		x->mark = false;
 	}
 
-	// Mira si es necesario hacer un corte,
-	// es decir, si esta marcado, hay que hacer
-	// un corte, si no, se deja como está, pero se marca
-	// para la siguiente vez
-	// Coste peor: O(log(n))
-	// Coste amortizado: O(1)
+	/**
+	 * @brief Recursive cut based on node->mark. <br>
+	 * If 'y' is marked its needed to do a cascade cut, cutting his father
+	 * @param y Node to cut
+	 */
 	void p_cascadingCut(Node* y) {
 		if (y->mark) {
 			// Estaba marcado, hay que cortarlo
@@ -257,13 +314,19 @@ protected:
 		}
 	}
 
-	// Inserta un nodo en la estructura
-	// Se devuelve el nodo asociado para que luego se pueda
-	// llamar (si es necesario) a decreaseKey
-	// O(1)
-	Node* p_insert(T const& key) {
+	/**
+	 * @brief Inserts a new element on the heap, constructing it. <br>
+	 * Returns the node associated to the new element. Its a valid node that can be used
+	 * to call 'decreaseKey'. <br>
+	 * Time complexity: O(1)
+	 * @tparam Args List of type params of the object constructor
+	 * @param args List of params of the object Constructor
+	 * @return Node* Created node
+	 */
+	template<class... Args>
+	Node* p_emplace(Args&&... args) {
 		// Se crea un nodo con la clave
-		Node* newNode = p_create(key);
+		Node* newNode = p_create(std::forward<Args>(args)...);
 
 		if (this->min == nullptr) {
 			// Si el monticulo estaba vacio, es el nuevo minimo
@@ -275,7 +338,7 @@ protected:
 			p_insertToLeft(newNode, this->min);
 
 			// Se actualiza el minimo si es necesario
-			if (newNode->key < this->min->key) {
+			if (comparator(newNode->key, this->min->key)) {
 				this->min = newNode;
 			}
 			++_size;
@@ -284,14 +347,15 @@ protected:
 		return newNode;
 	}
 
-	// Une dos monticulos. El monticulo pasado como referencia se "destruye" (pasa a ser vacio)
-	// O(1)
+	/**
+	 * @brief Merge two heaps. The other heap is left on a default state.
+	 * @param other The other heap to merge.
+	 */
 	void p_union(FibonacciHeap<T>& other) {
 		if (other.min == nullptr) return;
 
 		/************ Concatenate ************/
 		this->_size += other._size;
-		if (this->maxDegree < other.maxDegree) this->maxDegree = other.maxDegree;
 
 		// Rompo la lista
 		Node* otherFirst = other.min;
@@ -309,42 +373,48 @@ protected:
 		/********** End Concatenate **********/
 
 		// other->min todavia es valido
-		if (other.min->key < this->min->key) {
+		if (comparator(other.min->key, this->min->key)) {
 			this->min = other.min;
 		}
 
 		// Hay que dejar en buen estado el otro
 		other.min = nullptr;
 		other._size = 0;
-		other.maxDegree = 0;
 	}
 
-	// Decrementa una clave
-	// Coste peor: O(log(n))
-	// Coste amortizado: O(1)
+	/**
+	 * @brief Decrements a key.
+	 * Time complexity: O(log(this->size))
+	 * Amortized time complexity: O(1)
+	 * @param x Node to decrement key
+	 * @param newKey New key
+	 */
 	void p_decreaseKey(Node* x, T const& newKey) {
-		if (x->key < newKey) {
+		if (x->key > newKey) {
 			throw std::invalid_argument("New key is greater than current key");
 		}
 
 		x->key = newKey;
 		Node* y = x->father;
 
-		if (y != nullptr && x->key < y->key) {
+		if (y != nullptr && x->key > y->key) {
 			// No está en buena relación
 			p_cut(x, y); //Se corta
 			p_cascadingCut(y); //Se mira si hay que cortar su padre
 		}
 
-		if (x->key < this->min->key) {
+		if (comparator(x->key, this->min->key)) {
 			// Se actualiza si es necesario
 			this->min = x;
 		}
 	}
 
-	// Elimina el minimo del monticulo
-	// Coste peor: O(n)
-	// Coste amortizado: O(log(n))
+	/**
+	 * @brief Deletes the greatest element on the heap
+	 * Time complexity: O(this->size)
+	 * Amortized time complexity: O(log(this->size))
+	 * @return T element
+	 */
 	T p_pop() {
 		Node* z = this->min;
 		if (z != nullptr) {
@@ -353,7 +423,6 @@ protected:
 			while (i < z->degree) {
 				// Desgraciadamente, hay que hacer este bucle, ya que hay que:
 				// - Poner los "father" a null
-				// - Comprobar el maxDegree
 				// - Desmarcarlo
 				Node* aux = it;
 				it = it->siblingLeft;
@@ -362,7 +431,6 @@ protected:
 				aux->father = nullptr;
 				aux->mark = false;
 
-				if (this->maxDegree < aux->degree) this->maxDegree = aux->degree;
 				++i;
 			}
 
@@ -370,7 +438,6 @@ protected:
 			if (z == z->siblingLeft) {
 				// Si era el ultimo que quedaba
 				this->min = nullptr;
-				this->maxDegree = 0;
 			}
 			else {
 				this->min = z->siblingRight; // Temporal, hasta que consolidate haga su trabajo
@@ -379,127 +446,52 @@ protected:
 			}
 		}
 
-		T key = z->key;
-		delete z; // Se elimina
+		T key = std::move(z->key);
+		node_alloc.deallocate(z, 1); // Se elimina
 		return key; //Se devuelve la clave
 	}
 
-	// Crea la estructura vacia
-	// O(1)
-	inline void p_new() {
-		min = nullptr;
-		_size = 0;
-		maxDegree = 0;
-	}
-
-	// Elimina la estructura
-	// O(n)
-	inline void p_delete() noexcept {
-		if (min != nullptr) {
-			Node* it = min;
-
-			while (it != it->siblingLeft) {
-				Node* aux = it;
-				it = it->siblingLeft;
-
-				p_delFromList(aux);
-				p_delete(aux);
-			}
-			p_delete(it);
-		}
-	}
-
-	// Clona otra estructura a esta. Elimina toda la informacion de la actual
-	// O(n1 + n2);
-	//  n1 = Numero de nodos en la original
-	//  n2 = Numero de nodos en la que se quiere copiar
-	inline void p_copy(FibonacciHeap<T> const& other) noexcept {
-		if (other.min == nullptr) {
-			this->min = nullptr;
-			this->_size = 0;
-			this->maxDegree = 0;
-		}
-		else {
-			this->min = p_duplicate(other.min, nullptr);
-
-			Node* it = other.min->siblingLeft;
-			while (it != other.min) {
-				Node* dupl = p_duplicate(it, nullptr);
-				p_insertToLeft(dupl, this->min);
-
-				it = it->siblingLeft;
-			}
-
-			this->_size = other._size;
-			this->maxDegree = other.maxDegree;
-		}
-	}
-
-	// Mueve la estructura, eliminando la otra
-	// O(n); n = Numero de nodos en la original, normalmente es 0, al menos que
-	// haga a posta
-	inline void p_move(FibonacciHeap<T>& other) noexcept {
-		this->min = other.min;
-		this->_size = other._size;
-		this->maxDegree = other.maxDegree;
-
-		other.p_new();
-	}
-
-	// Escribe la estructura completa, con un formato peculiar
-	// O(n)
-	void p_print(std::ostream& out, Node* node, std::string start) {
-		out << start << node->key << (node->mark ? "!" : "") << std::endl;
-
-		if (node->child != nullptr) {
-			p_print(out, node->child, start + " ");
-		}
-
-		Node* it = node->siblingRight;
-		while (it != node) {
-			out << start << it->key << (it->mark ? "!" : "") << std::endl;
-
-			if (it->child != nullptr) {
-				p_print(out, it->child, start + " ");
-			}
-
-			it = it->siblingRight;
-		}
-	}
-
 public:
-	
-	// Constructora por defecto, crea la estructura vacia
-	// O(1)
-	FibonacciHeap() {
-		p_new();
+	/**
+	 * @brief Construct a new Fibonacci Heap object
+	 * @param c Comparator to use
+	 * @param alloc Allocator to use
+	 */
+	FibonacciHeap(Comparator c = Comparator(), Allocator alloc = Allocator()) {
+		this->p_new(c, alloc);
 	}
 	
-	// Constructora por copia
-	// O(n1 + n2);
-	//  n1 = Numero de datos en la original
-	//  n2 = Numero de datos en la que se quiere copiar
+	/**
+	 * @brief Construct a new Fibonacci Heap object by copy
+	 * @param other The other heap
+	 */
 	FibonacciHeap(FibonacciHeap<T> const& other) {
 		this->p_copy(other);
 	}
 
-	// Constructora de movimiento
-	// O(n); n = Numero de datos en la original, ya que la original se debe eliminar.
-	// Normalmente n es 0, al menos que haga a posta y sea mas.
+	/**
+	 * @brief Construct a new Fibonacci Heap object by move
+	 * 
+	 * @param other The other heap
+	 */
 	FibonacciHeap(FibonacciHeap<T>&& other) noexcept {
 		this->p_move(other);
 	}
 	
-	// Destructora
-	// O(n); n = Numero de datos
+	/**
+	 * @brief Destroy the Fibonacci Heap object
+	 */
 	~FibonacciHeap() {
-		p_delete();
+		this->p_delete();
 	}
 	
-	// Operador de asignacion de copia
-	// O(n1 + n2);
-	//  n1 = Numero de datos en la original, ya que hay que eliminar la original
-	//  n2 = Numero de datos en la que se quiere copiar
+	/**
+	 * @brief Copy assignment operator
+	 * Time complexity: O(other.size() + this->size())
+	 *  - Because delete operator costs O(n)
+	 * @param other The other heap to copy
+	 * @return FibonacciHeap& Reference to *this
+	 */
 	FibonacciHeap<T>& operator=(FibonacciHeap<T> const& other) noexcept {
 		if (this != &other) {
 			this->p_delete();
@@ -508,9 +500,13 @@ public:
 		return *this;
 	}
 
-	// Operador de asignacion de movimiento
-	// O(n); n = Numero de datos en la original, normalmente es 0, al menos que
-	// haga a posta y sea mas, ya que la original se debe eliminar.
+	/**
+	 * @brief Move assignment operator
+	 * Time complexity: O(this->size())
+	 *  - Because delete operator costs O(n)
+	 * @param other The other heap to move
+	 * @return FibonacciHeap& Reference to *this
+	 */
 	FibonacciHeap<T>& operator=(FibonacciHeap<T>&& other) noexcept {
 		if (this != &other) {
 			this->p_delete();
@@ -519,71 +515,117 @@ public:
 		return *this;
 	}
 	
-	// Intercambia los valores de dos monticulos
-	// O(1)
+	/**
+	 * @brief Swap the two heaps
+	 * Time complexity: O(1)
+	 * @param other The other heap to swap with
+	 */
 	inline void swap(FibonacciHeap<T>& other) noexcept {
-		std::swap(maxDegree, other.maxDegree);
 		std::swap(_size, other._size);
 		std::swap(min, other.min);
 	}
 
-	// Inserta un nodo en la estructura
-	// Se devuelve el nodo valido para decreaseKey
-	// O(1)
-	Node* insert(T const& key) {
-		return p_insert(key);
+	/**
+	 * @brief Push 'elem' to the heap, copying it
+	 * Time complexity: O(O(elem copy))
+	 * @param elem The elem to be pushed
+	 * @return void* Pointer that can be used to decreaseKey
+	 */
+	void* push(T const& elem) {
+		return this->p_emplace(elem);
 	}
 
-	// Consulta el minimo
-	// O(1)
+	/**
+	 * @brief Push 'elem' to the heap, moving it
+	 * Time complexity: O(log(this->size) + O(elem move))
+	 * @param elem lvalue reference to the elem to be pushed
+	 */
+	void* push(T&& elem) {
+		return this->p_emplace(std::move(elem));
+	}
+
+	/**
+	 * @brief Construct element directly on the heap
+	 * Time complexity: O(O(elem creation))
+	 * @tparam Args Template parameter list, type parameters of the object constructor
+	 * @param args Parameters list of the object constructor
+	 */
+	template<class... Args>
+	void* emplace(Args&&... args){
+		return this->p_emplace(std::forward<Args>(args)...);
+	}
+
+	/**
+	 * @brief Consult top element of the heap
+	 * Time complexity: O(1)
+	 * @return T const& Reference to the top element
+	 */
 	T const& top() const {
+		if (empty()) throw std::domain_error("Empty heap");
 		return min->key;
 	}
 
-	// Elimina el minimo del monticulo
-	// Coste peor: O(n)
-	// Coste amortizado: O(log(n))
+	/**
+	 * @brief Pop element from the heap
+	 * Time complexity: O(this->size)
+	 * Amortized time complexity: O(log(this->size))
+	 * @return T Element popped
+	 */
 	T pop() {
-		return p_pop();
+		if (empty()) throw std::domain_error("Empty heap");
+		return this->p_pop();
 	}
 
-	// Une dos monticulos. El monticulo pasado como referencia se "destruye" (pasa a ser vacio)
-	// O(1)
+	/**
+	 * @brief Merge two FibonacciHeaps. The other heap ys left on a default state.
+	 * Time complexity: O(1)
+	 * @param other 
+	 */
 	void merge(FibonacciHeap<T>& other) {
-		p_union(other);
+		this->p_union(other);
 	}
 
-	// Decrementa una clave
-	// Coste peor: O(log(n))
-	// Coste amortizado: O(1)
-	void decreaseKey(Node* node, T const& newKey) {
-		p_decreaseKey(node, newKey);
+	/**
+	 * @brief Decrements a key.
+	 * Time complexity: O(log(this->size))
+	 * Amortized time complexity: O(1)
+	 * @param node Node pointer returned by push / emplace
+	 * @param newKey New key
+	 */
+	void decreaseKey(void* node, T const& newKey) {
+		this->p_decreaseKey((Node*)node, newKey);
 	}
 
-	// Consulta el tamaño del monticulo
-	// O(1)
-	inline int size() const {
+	/**
+	 * @brief Number of elements
+	 * Time complexity: O(1)
+	 * @return std::size_t Number of elements
+	 */
+	inline std::size_t size() const {
 		return this->_size;
 	}
 
-	// Comprueba si la estructura está vacia
-	// O(1)
+	/**
+	 * @brief Number of elements
+	 * Time complexity: O(1)
+	 * @return std::size_t Number of elements
+	 */
 	inline bool empty() const {
 		return this->min == nullptr;
 	}
-
-	// Escribe la estructura completa, con un formato peculiar
-	// O(n)
-	void print(std::ostream& out) {
-		if(this->min != nullptr)
-			p_print(out, this->min, "");
-	}
 };
 
-namespace std {
-	template <typename T>
-	inline void swap(FibonacciHeap<T>& left, FibonacciHeap<T>& right) noexcept {
-		left.swap(right);
-	}
+/**
+ * @brief Swaps the two heaps
+ * Time complexity: O(1)
+ * This implementation is intended to be found by the ADL algorithm
+ * @tparam T Same as class documentation
+ * @tparam Comparator Same as class documentation
+ * @tparam Allocator Same as class documentation
+ * @param lhs Left heap
+ * @param rhs Right heap
+ */
+template <typename T>
+void swap(FibonacciHeap<T>& left, FibonacciHeap<T>& right) noexcept {
+	left.swap(right);
 }
-
