@@ -19,7 +19,7 @@ The heaps implemented in this library has the following interface:
 - Pop element
 - Size and empty methods
 
-### Benchmark comparison
+### Performance comparison
 
 In progres...
 
@@ -27,6 +27,6 @@ In progres...
 
 In progres...
 
-### Benchmark comparison
+### Performance comparison
 
 In progres...
