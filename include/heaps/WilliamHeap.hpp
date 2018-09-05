@@ -264,7 +264,7 @@ public:
 	 */
 	template <class... Args>
 	void emplace(Args&&... args) {
-		this->p_emplace(args...);
+		this->p_emplace(std::forward<Args>(key)...);
 	}
 
 	/**

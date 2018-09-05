@@ -24,7 +24,7 @@ protected:
 		Node* sibling;
 		Node* child;
 	};
-	std::allocator<Node> node_alloc; //default constructor
+	std::allocator<Node> node_alloc;
 
 	Comparator greater;
 	Allocator alloc;
@@ -373,7 +373,7 @@ public:
 	 */
 	template <class... Args>
 	void emplace(Args&&... args) {
-		this->p_emplace(args...);
+		this->p_emplace(std::forward<Args>(args)...);
 	}
 
 	/**
