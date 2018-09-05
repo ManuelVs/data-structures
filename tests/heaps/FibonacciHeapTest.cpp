@@ -73,7 +73,7 @@ TEST(FibonacciHeapTest, RandomTest1) {
 
 	int actual = heap.pop();
 	for (std::size_t i = 0; i < size - 1; ++i) {
-		EXPECT_GE(heap.top(), actual);
+		EXPECT_LE(heap.top(), actual);
 		actual = heap.pop();
 	}
 
