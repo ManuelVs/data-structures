@@ -382,7 +382,7 @@ public:
 	 */
 	T pop() {
 		if (empty()) throw std::domain_error("Empty heap");
-		return this->p_pop();;
+		return this->p_pop();
 	}
 
 	/**

@@ -152,13 +152,10 @@ protected:
 	}
 
 	T p_pop() {
-		if (!empty()) {
-			T key = std::move(vector[0]);
-			vector[0] = std::move(vector[--num_elems]);
-			p_sink(0);
-			return key;
-		}
-		else throw std::domain_error("Empty heap");
+		T key = std::move(vector[0]);
+		vector[0] = std::move(vector[--num_elems]);
+		p_sink(0);
+		return key;
 	}
 
 public:
@@ -264,7 +261,7 @@ public:
 	 */
 	template <class... Args>
 	void emplace(Args&&... args) {
-		this->p_emplace(std::forward<Args>(key)...);
+		this->p_emplace(std::forward<Args>(args)...);
 	}
 
 	/**
@@ -273,6 +270,7 @@ public:
 	 * @return T Element popped
 	 */
 	T pop() {
+		if (empty()) throw std::domain_error("Empty heap");
 		return p_pop();
 	}
 
@@ -282,6 +280,7 @@ public:
 	 * @return T const& Reference to the top element
 	 */
 	T const& top() const {
+		if (empty()) throw std::domain_error("Empty heap");
 		return vector[0];
 	}
 
