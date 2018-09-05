@@ -33,6 +33,19 @@ protected:
 	Node* _greater;
 	std::size_t _size;
 
+	template<class... Args>
+	Node* p_create(Args&&... args) {
+		Node* node = node_alloc.allocate(1);
+
+		alloc.construct(&node->key, std::forward<Args>(args)...);
+		node->degree = 0;
+		node->father = nullptr;
+		node->sibling = nullptr;
+		node->child = nullptr;
+
+		return node;
+	}
+
 	void p_delete(Node* root) {
 		if (root != nullptr) {
 			p_delete(root->child);
@@ -44,7 +57,7 @@ protected:
 
 	Node* p_copy(Node* root) {
 		if (root == nullptr) return nullptr;
-		Node* new_node = new Node(*root);
+		Node* new_node = p_create(root->key); //copy key
 		new_node->child = p_copy(root->child);
 		new_node->sibling = p_copy(root->sibling);
 		return new_node;
@@ -88,19 +101,6 @@ protected:
 		std::swap(this->_root, other._root);
 		std::swap(this->_greater, other._greater);
 		std::swap(this->_size, other._size);
-	}
-
-	template<class... Args>
-	Node* p_create(Args&&... args) {
-		Node* node = node_alloc.allocate(1);
-
-		alloc.construct(&node->key, std::forward<Args>(args)...);
-		node->degree = 0;
-		node->father = nullptr;
-		node->sibling = nullptr;
-		node->child = nullptr;
-
-		return node;
 	}
 
 	/**
