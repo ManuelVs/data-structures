@@ -13,7 +13,7 @@
  * @tparam Comparator Comparator between keys
  * @tparam Allocator Keys' allocator
  */
-template <typename T, class Comparator = std::greater<T>, class Allocator = std::allocator<T>>
+template <typename T, typename Comparator = std::greater<T>, class Allocator = std::allocator<T>>
 class BinomialHeap {
 protected:
 	struct Node {
@@ -69,7 +69,7 @@ protected:
 		this->_size = 0;
 	}
 
-	void p_new(Comparator c = Comparator(), Allocator alloc = Allocator()) {
+	void p_new(Comparator const& c = Comparator(), Allocator const& alloc = Allocator()) {
 		this->p_default();
 		this->greater = c;
 		this->alloc = alloc;
@@ -231,10 +231,20 @@ protected:
 		Node* node = p_create(std::forward<Args>(args)...);
 
 		this->_root = p_union(this->_root, node);
-		p_update_greater();
+		this->p_update_greater();
 		++this->_size;
 	}
 
+	void p_merge(BinomialHeap& other){
+		Node* this_root = this->_root;
+		Node* other_root = other._root;
+
+		this->_root = p_union(this_root, other_root);
+		this->p_update_greater();
+
+		this->_size += other._size;
+		other.p_default();
+	}
 
 	T p_pop() {
 		Node* iter = this->_root;
@@ -277,7 +287,7 @@ public:
 	 * @param c 
 	 * @param alloc 
 	 */
-	BinomialHeap(Comparator c = Comparator(), Allocator alloc = Allocator()) {
+	BinomialHeap(Comparator const& c = Comparator(), Allocator const& alloc = Allocator()) {
 		this->p_new(c, alloc);
 	}
 
@@ -386,6 +396,15 @@ public:
 	}
 
 	/**
+	 * @brief Merge two FibonacciHeaps. The other heap ys left on a default state.
+	 * Time complexity: O(1)
+	 * @param other 
+	 */
+	void merge(BinomialHeap& other) {
+		this->p_merge(other);
+	}
+
+	/**
 	 * @brief Consult top element of the heap
 	 * Time complexity: O(1)
 	 */
@@ -415,7 +434,6 @@ public:
  * @brief Time complexity: O(1)
  * ADL finds this swap
  */
-
 template<typename T, class C, class A>
 void swap(BinomialHeap<T, C, A>& lhs, BinomialHeap<T, C, A>& rhs) {
 	lhs.swap(rhs);
