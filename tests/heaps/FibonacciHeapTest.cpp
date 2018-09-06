@@ -1,83 +1,38 @@
 #include "gtest/gtest.h"
+#include "HeapTest.hpp"
 
 #include "heaps/FibonacciHeap.hpp"
 
-TEST(FibonacciHeapTest, Push1) {
-	FibonacciHeap<int> heap;
-	heap.push(1);
-	heap.push(8);
-	heap.push(6);
-	heap.push(5);
-	heap.push(3);
-	heap.push(7);
-	heap.push(4);
+TEST(FibonacciHeapTest, Construct) {
+	construct_test<FibonacciHeap<int>>();
+}
 
-	EXPECT_EQ(heap.pop(), 8);
-	EXPECT_EQ(heap.pop(), 7);
-	EXPECT_EQ(heap.pop(), 6);
-	EXPECT_EQ(heap.pop(), 5);
-	EXPECT_EQ(heap.pop(), 4);
-	EXPECT_EQ(heap.pop(), 3);
-	EXPECT_EQ(heap.pop(), 1);
+TEST(FibonacciHeapTest, ConstructCopy) {
+	construct_copy_test<FibonacciHeap<int>>();
+}
+
+TEST(FibonacciHeapTest, ConstructMove) {
+	construct_move_test<FibonacciHeap<int>>();
+}
+
+TEST(FibonacciHeapTest, Push1) {
+	push1_test<FibonacciHeap<int>>();
 }
 
 TEST(FibonacciHeapTest, Push2) {
-	FibonacciHeap<int> heap;
-	heap.push(10);
-	heap.push(1);
-	heap.push(8);
-	heap.push(2);
-	heap.push(7);
-	heap.push(11);
-	heap.push(10);
-
-	EXPECT_EQ(heap.pop(), 11);
-	EXPECT_EQ(heap.pop(), 10);
-	EXPECT_EQ(heap.pop(), 10);
-	EXPECT_EQ(heap.pop(), 8);
-	EXPECT_EQ(heap.pop(), 7);
-	EXPECT_EQ(heap.pop(), 2);
-	EXPECT_EQ(heap.pop(), 1);
+	push2_test<FibonacciHeap<int>>();
 }
 
 TEST(FibonacciHeapTest, Emplace1) {
-	FibonacciHeap<int, std::less<int>> heap;
-	heap.emplace(1);
-	heap.emplace(2);
-	heap.emplace(3);
-	heap.emplace(4);
-	heap.emplace(5);
-	heap.emplace(6);
-	heap.emplace(7);
-
-	EXPECT_EQ(heap.pop(), 1);
-	EXPECT_EQ(heap.pop(), 2);
-	EXPECT_EQ(heap.pop(), 3);
-	EXPECT_EQ(heap.pop(), 4);
-	EXPECT_EQ(heap.pop(), 5);
-	EXPECT_EQ(heap.pop(), 6);
-	EXPECT_EQ(heap.pop(), 7);
+	emplace1_reverse_test<FibonacciHeap<int, std::less<int>>>();
 }
 
-#include <random>
-TEST(FibonacciHeapTest, RandomTest1) {
-	FibonacciHeap<int> heap;
-	std::default_random_engine random;
-	size_t size = 1000000;
+TEST(FibonacciHeapTest, BigPush1) {
+	big_push1_test<FibonacciHeap<int>>();
+}
 
-	for (std::size_t i = 0; i < size; ++i) {
-		heap.push(i);
-	}
-
-	EXPECT_EQ(heap.size(), size);
-
-	int actual = heap.pop();
-	for (std::size_t i = 0; i < size - 1; ++i) {
-		EXPECT_LE(heap.top(), actual);
-		actual = heap.pop();
-	}
-
-	EXPECT_TRUE(heap.empty());
+TEST(FibonacciHeapTest, BigPush2) {
+	big_push2_test<FibonacciHeap<int>>();
 }
 
 TEST(FibonacciHeapTest, NestedHeap) {
@@ -104,12 +59,13 @@ TEST(FibonacciHeapTest, NestedHeap) {
 }
 
 TEST(FibonacciHeapTest, RaisesExceptionWhenEmpty) {
-	FibonacciHeap<int> heap;
-
-	EXPECT_THROW(heap.pop(), std::domain_error);
+	raises_exception_when_empty_test<FibonacciHeap<int>>();
 }
 
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+TEST(FibonacciHeapTest, MergeTest) {
+	merge_test<FibonacciHeap<int>>();
+}
+
+TEST(BinomialHeapTest, BigMerge) {
+	big_merge_test<FibonacciHeap<int>>();
 }

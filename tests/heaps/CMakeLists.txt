@@ -1,8 +1,8 @@
 # ADD EXECUTABLES
-ADD_EXECUTABLE(BinomialHeapTest "BinomialHeapTest.cpp")
-ADD_EXECUTABLE(FibonacciHeapTest "FibonacciHeapTest.cpp")
-ADD_EXECUTABLE(STLHeapTest "STLHeapTest.cpp")
-ADD_EXECUTABLE(WilliamHeapTest "WilliamHeapTest.cpp")
+add_executable(BinomialHeapTest "BinomialHeapTest.cpp")
+add_executable(FibonacciHeapTest "FibonacciHeapTest.cpp")
+add_executable(STLHeapTest "STLHeapTest.cpp")
+add_executable(WilliamHeapTest "WilliamHeapTest.cpp")
 
 # LINK LIBRARIES
 target_link_libraries(BinomialHeapTest INCLUDE_HEAPS)
