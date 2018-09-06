@@ -32,7 +32,7 @@ protected:
 		this->num_elems = 0;
 	}
 
-	void p_new(Comparator c = Comparator(), Allocator alloc = Allocator()) {
+	void p_new(Comparator const& c = Comparator(), Allocator const& alloc = Allocator()) {
 		this->p_default();
 		this->greater = c;
 		this->alloc = alloc;
@@ -166,7 +166,7 @@ public:
 	 * @param c Comparator to be used
 	 * @param alloc Allocator to be used
 	 */
-	WilliamHeap(Comparator c = Comparator(), Allocator alloc = Allocator()) {
+	WilliamHeap(Comparator const& c = Comparator(), Allocator const& alloc = Allocator()) {
 		this->p_new(c, alloc);
 	}
 

@@ -113,7 +113,7 @@ protected:
 		this->_size = 0;
 	}
 
-	void p_new(Comparator c = Comparator(), Allocator alloc = Allocator()) {
+	void p_new(Comparator const& c = Comparator(), Allocator const& alloc = Allocator()) {
 		this->p_default();
 		this->comparator = c;
 		this->alloc = alloc;
@@ -123,7 +123,7 @@ protected:
 		this->p_delete(this->min);
 	}
 
-	void p_copy(FibonacciHeap<T> const& other) noexcept {
+	void p_copy(FibonacciHeap const& other) noexcept {
 		if (other.min == nullptr) {
 			this->min = nullptr;
 			this->_size = 0;
@@ -143,7 +143,7 @@ protected:
 		}
 	}
 
-	void p_move(FibonacciHeap<T>& other) noexcept {
+	void p_move(FibonacciHeap& other) noexcept {
 		this->min = other.min;
 		this->_size = other._size;
 
@@ -351,7 +351,7 @@ protected:
 	 * @brief Merge two heaps. The other heap is left on a default state.
 	 * @param other The other heap to merge.
 	 */
-	void p_union(FibonacciHeap<T>& other) {
+	void p_union(FibonacciHeap& other) {
 		if (other.min == nullptr) return;
 
 		/************ Concatenate ************/
@@ -457,7 +457,7 @@ public:
 	 * @param c Comparator to use
 	 * @param alloc Allocator to use
 	 */
-	FibonacciHeap(Comparator c = Comparator(), Allocator alloc = Allocator()) {
+	FibonacciHeap(Comparator const& c = Comparator(), Allocator const& alloc = Allocator()) {
 		this->p_new(c, alloc);
 	}
 	
@@ -465,7 +465,7 @@ public:
 	 * @brief Construct a new Fibonacci Heap object by copy
 	 * @param other The other heap
 	 */
-	FibonacciHeap(FibonacciHeap<T> const& other) {
+	FibonacciHeap(FibonacciHeap const& other) {
 		this->p_copy(other);
 	}
 
@@ -474,7 +474,7 @@ public:
 	 * 
 	 * @param other The other heap
 	 */
-	FibonacciHeap(FibonacciHeap<T>&& other) noexcept {
+	FibonacciHeap(FibonacciHeap&& other) noexcept {
 		this->p_move(other);
 	}
 	
@@ -492,7 +492,7 @@ public:
 	 * @param other The other heap to copy
 	 * @return FibonacciHeap& Reference to *this
 	 */
-	FibonacciHeap<T>& operator=(FibonacciHeap<T> const& other) noexcept {
+	FibonacciHeap& operator=(FibonacciHeap const& other) noexcept {
 		if (this != &other) {
 			this->p_delete();
 			this->p_copy(other);
@@ -507,7 +507,7 @@ public:
 	 * @param other The other heap to move
 	 * @return FibonacciHeap& Reference to *this
 	 */
-	FibonacciHeap<T>& operator=(FibonacciHeap<T>&& other) noexcept {
+	FibonacciHeap& operator=(FibonacciHeap&& other) noexcept {
 		if (this != &other) {
 			this->p_delete();
 			this->p_move(other);
@@ -520,7 +520,7 @@ public:
 	 * Time complexity: O(1)
 	 * @param other The other heap to swap with
 	 */
-	inline void swap(FibonacciHeap<T>& other) noexcept {
+	inline void swap(FibonacciHeap& other) noexcept {
 		std::swap(_size, other._size);
 		std::swap(min, other.min);
 	}
@@ -581,7 +581,7 @@ public:
 	 * Time complexity: O(1)
 	 * @param other 
 	 */
-	void merge(FibonacciHeap<T>& other) {
+	void merge(FibonacciHeap& other) {
 		this->p_union(other);
 	}
 
@@ -625,7 +625,7 @@ public:
  * @param lhs Left heap
  * @param rhs Right heap
  */
-template <typename T>
-void swap(FibonacciHeap<T>& left, FibonacciHeap<T>& right) noexcept {
+template<typename T, class C, class A>
+void swap(FibonacciHeap<T, C, A>& left, FibonacciHeap<T, C, A>& right) noexcept {
 	left.swap(right);
 }
