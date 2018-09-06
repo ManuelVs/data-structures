@@ -1,0 +1,36 @@
+box: manuelvs/cppdevelopment:alpine
+
+dev:
+    steps:
+        - script:
+            name: Clean build directory
+            code: rm -rf build/*
+        
+        - internal/shell:
+            cmd: sh
+
+    after-steps:
+        - script:
+            name: Fix permission of generated files
+            code: chown -R 1000:1000 .
+            disable-sync: true
+
+test:
+    steps:
+        - script:
+            name: Clean directory
+            code: rm -rf build
+
+        - script:
+            name: Build package
+            code: |
+                mkdir build
+                cd build
+                cmake -DCMAKE_BUILD_TYPE=Release ..
+                make -j 8
+    
+        - script:
+            name: Execute tests
+            code: |
+                cd build
+                make test
