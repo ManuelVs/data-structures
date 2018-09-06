@@ -1,4 +1,5 @@
 .vscode/
+.wercker/
 build/
 
 docs/doxy_docs
