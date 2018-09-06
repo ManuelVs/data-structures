@@ -34,16 +34,6 @@ void print_heap(T& heap){
  * @return int result code
  */
 int main(int argc, const char *argv[]) {
-	std::cout << "hello Visual Studio Code! :)" << '\n';
-	//int* b = new int[100];
-	std::vector<int> a;
-	a.push_back(2);
-	
-	BinomialHeap<int> heap = create_heap<BinomialHeap<int>>(10);
-	heap.pop();
-	BinomialHeap<int> heap2 = create_heap<BinomialHeap<int>>(10);
-	print_heap(heap);
-	print_heap(heap2);
-
+	std::cout << "Welcome!" << '\n';
 	return 0;
 }
