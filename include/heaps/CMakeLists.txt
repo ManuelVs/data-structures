@@ -9,9 +9,6 @@ add_library(INCLUDE_HEAPS STATIC
     ${INCLUDE_HEAPS_SRCS}
 )
 
-# Link dependency
-target_link_libraries(INCLUDE_HEAPS)
-
 # Specify here the include directories exported by this library
 target_include_directories(INCLUDE_HEAPS PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
