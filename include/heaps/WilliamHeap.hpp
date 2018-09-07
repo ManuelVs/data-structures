@@ -84,10 +84,10 @@ protected:
 	}
 
 	void p_swap(WilliamHeap& other) {
-		std::swap(this->comparator, other.comparator);
-		std::swap(this->vector, other.vector);
-		std::swap(this->capacity, other.capacity);
-		std::swap(this->num_elems, other.num_elems);
+		p_adl_swap(this->comparator, other.comparator);
+		p_adl_swap(this->vector, other.vector);
+		p_adl_swap(this->capacity, other.capacity);
+		p_adl_swap(this->num_elems, other.num_elems);
 	}
 
 	void p_grow() {
