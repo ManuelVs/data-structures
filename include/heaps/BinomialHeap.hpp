@@ -16,6 +16,20 @@
 template <typename T, typename Comparator = std::greater<T>, class Allocator = std::allocator<T>>
 class BinomialHeap {
 protected:
+	/**
+	 * @brief Uses the first swap found by the ADL algorithm. <br>
+	 * This should find the user-defined swap before the generic std::swap, that makes
+	 * three moves
+	 * @tparam U Type
+	 * @param left Left object
+	 * @param right Right object
+	 */
+	template<typename U>
+	void p_adl_swap(U& left, U& right) {
+		using std::swap;
+		swap(left, right); // ADL swap
+	}
+
 	struct Node {
 		T key;
 		int degree;
@@ -24,10 +38,13 @@ protected:
 		Node* sibling;
 		Node* child;
 	};
-	std::allocator<Node> node_alloc;
+	using alloc_key_traits = std::allocator_traits<Allocator>;
+	using alloc_node_traits = std::allocator_traits<std::allocator<Node>>;
 
-	Comparator greater;
-	Allocator alloc;
+	std::allocator<Node> alloc_node;
+
+	Comparator comparator;
+	Allocator alloc_key;
 
 	Node* _root;
 	Node* _greater;
@@ -35,9 +52,9 @@ protected:
 
 	template<class... Args>
 	Node* p_create(Args&&... args) {
-		Node* node = node_alloc.allocate(1);
+		Node* node = alloc_node_traits::allocate(alloc_node, 1);
 
-		alloc.construct(&node->key, std::forward<Args>(args)...);
+		alloc_key_traits::construct(alloc_key, &node->key, std::forward<Args>(args)...);
 		node->degree = 0;
 		node->father = nullptr;
 		node->sibling = nullptr;
@@ -50,8 +67,8 @@ protected:
 		if (root != nullptr) {
 			p_delete(root->child);
 			p_delete(root->sibling);
-			alloc.destroy(&root->key);
-			node_alloc.deallocate(root, 1);
+			alloc_key_traits::destroy(alloc_key, &root->key);
+			alloc_node_traits::deallocate(alloc_node, root, 1);
 		}
 	}
 
@@ -71,8 +88,8 @@ protected:
 
 	void p_new(Comparator const& c = Comparator(), Allocator const& alloc = Allocator()) {
 		this->p_default();
-		this->greater = c;
-		this->alloc = alloc;
+		this->comparator = c;
+		this->alloc_key = alloc;
 	}
 
 	void p_delete() {
@@ -81,26 +98,31 @@ protected:
 	}
 
 	void p_copy(BinomialHeap const& other) {
+		this->comparator = other.comparator;
+		this->alloc_key = other.alloc_key;
+
 		this->_root = p_copy(other._root);
-		this->p_update_greater();
-		this->greater = other.greater;
 		this->_size = other._size;
+		this->p_update_greater();
 	}
 
 	void p_move(BinomialHeap& other) {
-		this->greater = other.greater;
-		this->_root = other._root;
-		this->_greater = other._greater;
-		this->_size = other._size;
+		this->comparator = other.comparator;
+		this->alloc_key = other.alloc_key;
 
+		this->_root = other._root;
+		this->_size = other._size;
+		this->_greater = other._greater;
+		
 		other.p_default();
 	}
 
 	void p_swap(BinomialHeap& other) {
-		std::swap(this->greater, other.greater);
-		std::swap(this->_root, other._root);
-		std::swap(this->_greater, other._greater);
-		std::swap(this->_size, other._size);
+		p_adl_swap(this->comparator, other.comparator);
+		p_adl_swap(this->alloc_key, other.alloc_key);
+		p_adl_swap(this->_root, other._root);
+		p_adl_swap(this->_greater, other._greater);
+		p_adl_swap(this->_size, other._size);
 	}
 
 	/**
@@ -175,7 +197,7 @@ protected:
 		this->_greater = this->_root;
 		Node* iter = this->_root;
 		while (iter != nullptr) {
-			if (greater(iter->key, this->_greater->key)) {
+			if (comparator(iter->key, this->_greater->key)) {
 				this->_greater = iter;
 			}
 			iter = iter->sibling;
@@ -201,7 +223,7 @@ protected:
 				// nAct and nSig have the same degree AND
 				//   OR nSig->sibling is null
 				//   OR nAct and nSig and nSig->sibling have the same grade
-				if (greater(nAct->key, nSig->key)) {
+				if (comparator(nAct->key, nSig->key)) {
 					// nAct key is greater, nSig must be the child
 					nAct->sibling = nSig->sibling;
 					p_link(nAct, nSig);
@@ -270,10 +292,10 @@ protected:
 		if (this->_root == this->_greater) this->_root = this->_root->sibling;
 		
 		T key = std::move(this->_greater->key);
-		node_alloc.deallocate(this->_greater, 1);
+		alloc_node_traits::deallocate(alloc_node, this->_greater, 1);
 
 		this->_root = p_union(this->_root, firstChild);
-		p_update_greater();
+		this->p_update_greater();
 		--this->_size;
 
 		return key;

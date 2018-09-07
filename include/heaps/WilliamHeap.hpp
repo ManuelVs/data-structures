@@ -19,8 +19,24 @@
 template<typename T, class Comparator = std::greater<T>, class Allocator = std::allocator<T>>
 class WilliamHeap {
 protected:
-	Comparator greater;
-	Allocator alloc;
+	/**
+	 * @brief Uses the first swap found by the ADL algorithm. <br>
+	 * This should find the user-defined swap before the generic std::swap, that makes
+	 * three moves
+	 * @tparam U Type
+	 * @param left Left object
+	 * @param right Right object
+	 */
+	template<typename U>
+	void p_adl_swap(U& left, U& right) {
+		using std::swap;
+		swap(left, right); // ADL swap
+	}
+
+	using alloc_key_traits = std::allocator_traits<Allocator>;
+
+	Comparator comparator;
+	Allocator alloc_key;
 
 	T* vector;
 	std::size_t capacity;
@@ -34,32 +50,32 @@ protected:
 
 	void p_new(Comparator const& c = Comparator(), Allocator const& alloc = Allocator()) {
 		this->p_default();
-		this->greater = c;
-		this->alloc = alloc;
+		this->comparator = c;
+		this->alloc_key = alloc_key;
 	}
 
 	void p_delete() {
 		for (std::size_t i = 0; i < this->num_elems; ++i) {
-			this->alloc.destroy(&vector[i]);
+			alloc_key_traits::destroy(alloc_key, &vector[i]);
 		}
-		this->alloc.deallocate(this->vector, this->capacity);
+		alloc_key_traits::deallocate(alloc_key, this->vector, this->capacity);
 		
 		this->p_default();
 	}
 
 	void p_copy(WilliamHeap const& other) {
-		this->greater = other.greater;
+		this->comparator = other.comparator;
 		this->capacity = other.capacity;
 		this->num_elems = other.num_elems;
 
-		this->vector = this->alloc.allocate(this->capacity, this->vector);
+		this->vector = alloc_key_traits::allocate(alloc_key, this->capacity, this->vector);
 		for (std::size_t i = 0; i < this->num_elems; ++i) {
-			this->alloc.construct(&this->vector[i], other.vector[i]);
+			alloc_key_traits::construct(alloc_key, &this->vector[i], other.vector[i]);
 		}
 	}
 
 	void p_move(WilliamHeap& other) {
-		this->greater = other.greater;
+		this->comparator = other.comparator;
 		this->capacity = other.capacity;
 		this->num_elems = other.num_elems;
 		this->vector = other.vector;
@@ -68,7 +84,7 @@ protected:
 	}
 
 	void p_swap(WilliamHeap& other) {
-		std::swap(this->greater, other.greater);
+		std::swap(this->comparator, other.comparator);
 		std::swap(this->vector, other.vector);
 		std::swap(this->capacity, other.capacity);
 		std::swap(this->num_elems, other.num_elems);
@@ -84,21 +100,15 @@ protected:
 			new_capacity = this->capacity * 2;
 		}
 		
-		new_vector = this->alloc.allocate(new_capacity, this->vector);
+		new_vector = alloc_key_traits::allocate(alloc_key, new_capacity, this->vector);
 		if (new_vector != this->vector) {
 			for (std::size_t i = 0; i < this->num_elems; ++i)
-				this->alloc.construct(&new_vector[i], std::move(this->vector[i]));
+				alloc_key_traits::construct(alloc_key, &new_vector[i], std::move(this->vector[i]));
 
-			this->alloc.deallocate(this->vector, this->capacity);
+			alloc_key_traits::deallocate(alloc_key, this->vector, this->capacity);
 			this->capacity = new_capacity;
 			this->vector = new_vector;
 		}
-	}
-
-	template<typename U>
-	void p_adl_swap(U& left, U& right) {
-		using std::swap;
-		swap(left, right); // ADL swap
 	}
 
 	inline std::size_t p_father(std::size_t k) const {
@@ -113,7 +123,7 @@ protected:
 
 	std::size_t p_greater_child(std::size_t j) const {
 		std::size_t greater_child = p_left_child(j); //left_child of 'j'
-		if (greater_child + 1 < num_elems && greater(vector[greater_child + 1], vector[greater_child])) {
+		if (greater_child + 1 < num_elems && comparator(vector[greater_child + 1], vector[greater_child])) {
 			//we must choose the greatest of the childs
 			greater_child += 1;
 		}
@@ -123,7 +133,7 @@ protected:
 
 	void p_float(std::size_t k) {
 		// We must float 'node k' until his father has more priority
-		while (k != 0 && this->greater(this->vector[k], this->vector[p_father(k)])) {
+		while (k != 0 && this->comparator(this->vector[k], this->vector[p_father(k)])) {
 			p_adl_swap(vector[p_father(k)], vector[k]);
 			k = p_father(k);
 		}
@@ -133,20 +143,20 @@ protected:
 		std::size_t greater_child = p_greater_child(j);
 
 		//We must sink 'node j' until his childs have less priority
-		bool j_must_sink = greater_child < this->num_elems && greater(vector[greater_child], vector[j]);
+		bool j_must_sink = greater_child < this->num_elems && comparator(vector[greater_child], vector[j]);
 		while (j_must_sink) {
 			p_adl_swap(vector[j], vector[greater_child]);
 			j = greater_child;
 
 			greater_child = p_greater_child(j);
-			j_must_sink = greater_child < this->num_elems && greater(vector[greater_child], vector[j]);
+			j_must_sink = greater_child < this->num_elems && comparator(vector[greater_child], vector[j]);
 		}
 	}
 
 	template <class... Args>
 	void p_emplace(Args&&... args) {
 		if (num_elems == capacity) p_grow();
-		this->alloc.construct(&this->vector[num_elems], std::forward<Args>(args)...);
+		alloc_key_traits::construct(alloc_key, &this->vector[num_elems], std::forward<Args>(args)...);
 		p_float(num_elems);
 		++num_elems;
 	}

@@ -16,6 +16,20 @@ class FibonacciHeap
 {
 protected:
 	/**
+	 * @brief Uses the first swap found by the ADL algorithm. <br>
+	 * This should find the user-defined swap before the generic std::swap, that makes
+	 * three moves
+	 * @tparam U Type
+	 * @param left Left object
+	 * @param right Right object
+	 */
+	template<typename U>
+	void p_adl_swap(U& left, U& right) {
+		using std::swap;
+		swap(left, right); // ADL swap
+	}
+
+	/**
 	 * @brief This struct contains all what is needed to represent a node in this
 	 * FibonacciHeap
 	 */
@@ -29,11 +43,13 @@ protected:
 		Node* siblingRight;
 		Node* child;
 	};
+	using alloc_key_traits = std::allocator_traits<Allocator>;
+	using alloc_node_traits = std::allocator_traits<std::allocator<Node>>;
 
-	std::allocator<Node> node_alloc;
+	std::allocator<Node> alloc_node;
 
 	Comparator comparator;
-	Allocator alloc;
+	Allocator alloc_key;
 
 	Node* min;
 	std::size_t _size;
@@ -48,8 +64,8 @@ protected:
 	 */
 	template<class... Args>
 	Node* p_create(Args&&... args) {
-		Node* node = node_alloc.allocate(1);
-		alloc.construct(&node->key, std::forward<Args>(args)...);
+		Node* node = alloc_node_traits::allocate(alloc_node, 1);
+		alloc_key_traits::construct(alloc_key, &node->key, std::forward<Args>(args)...);
 
 		node->mark = false;
 		node->degree = 0; //No tiene hijos
@@ -71,8 +87,8 @@ protected:
 			p_delete(node->child);
 			p_delete(node->siblingRight);
 
-			alloc.destroy(&node->key);
-			node_alloc.deallocate(node, 1);
+			alloc_key_traits::destroy(alloc_key, &node->key);
+			alloc_node_traits::deallocate(alloc_node, node, 1);
 		}
 	}
 
@@ -116,7 +132,7 @@ protected:
 	void p_new(Comparator const& c = Comparator(), Allocator const& alloc = Allocator()) {
 		this->p_default();
 		this->comparator = c;
-		this->alloc = alloc;
+		this->alloc_key = alloc;
 	}
 
 	void p_delete() {
@@ -124,6 +140,9 @@ protected:
 	}
 
 	void p_copy(FibonacciHeap const& other) noexcept {
+		this->comparator = other.comparator;
+		this->alloc_key = other.alloc_key;
+
 		if (other.min == nullptr) {
 			this->min = nullptr;
 			this->_size = 0;
@@ -144,6 +163,9 @@ protected:
 	}
 
 	void p_move(FibonacciHeap& other) noexcept {
+		this->comparator = other.comparator;
+		this->alloc_key = other.alloc_key;
+
 		this->min = other.min;
 		this->_size = other._size;
 
@@ -234,7 +256,7 @@ protected:
 
 				if (comparator(y->key, x->key)) {
 					// x siempre tiene la clave pequeña
-					std::swap(x, y);
+					p_adl_swap(x, y);
 				}
 
 				//Se enlaza y de x
@@ -447,7 +469,7 @@ protected:
 		}
 
 		T key = std::move(z->key);
-		node_alloc.deallocate(z, 1); // Se elimina
+		alloc_node_traits::deallocate(alloc_node, z, 1); // Se elimina
 		return key; //Se devuelve la clave
 	}
 
@@ -521,8 +543,11 @@ public:
 	 * @param other The other heap to swap with
 	 */
 	inline void swap(FibonacciHeap& other) noexcept {
-		std::swap(_size, other._size);
-		std::swap(min, other.min);
+		p_adl_swap(this->comparator, other.comparator);
+		p_adl_swap(this->alloc_key, other.alloc_key);
+
+		p_adl_swap(_size, other._size);
+		p_adl_swap(min, other.min);
 	}
 
 	/**
