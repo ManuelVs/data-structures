@@ -252,7 +252,9 @@ private:
 
 public:
 
-	LeftLeaningRedBlackTree() {}
+	LeftLeaningRedBlackTree() {
+		root = nullptr;
+	}
 
 	~LeftLeaningRedBlackTree() {
 		del(root);
