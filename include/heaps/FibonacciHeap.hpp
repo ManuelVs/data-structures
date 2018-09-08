@@ -43,10 +43,13 @@ protected:
 		Node* siblingRight;
 		Node* child;
 	};
-	using alloc_key_traits = std::allocator_traits<Allocator>;
-	using alloc_node_traits = std::allocator_traits<std::allocator<Node>>;
+	
+	using NodeAllocator = std::allocator<Node>;
 
-	std::allocator<Node> alloc_node;
+	using alloc_key_traits = std::allocator_traits<Allocator>;
+	using alloc_node_traits = std::allocator_traits<NodeAllocator>;
+
+	NodeAllocator alloc_node;
 
 	Comparator comparator;
 	Allocator alloc_key;
@@ -163,8 +166,9 @@ protected:
 	}
 
 	void p_move(FibonacciHeap& other) noexcept {
-		this->comparator = other.comparator;
-		this->alloc_key = other.alloc_key;
+		this->comparator = std::move(other.comparator);
+		this->alloc_key = std::move(other.alloc_key);
+		this->alloc_node = std::move(other.alloc_node);
 
 		this->min = other.min;
 		this->_size = other._size;
