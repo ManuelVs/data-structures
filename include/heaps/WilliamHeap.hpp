@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
+#include <algorithm>
 
 /**
  * @brief WilliamHeap or BinaryHeap <br>
@@ -69,9 +70,10 @@ protected:
 		this->num_elems = other.num_elems;
 
 		this->vector = alloc_key_traits::allocate(alloc_key, this->capacity, this->vector);
-		for (std::size_t i = 0; i < this->num_elems; ++i) {
-			alloc_key_traits::construct(alloc_key, &this->vector[i], other.vector[i]);
-		}
+		//for (std::size_t i = 0; i < this->num_elems; ++i) {
+		//	alloc_key_traits::construct(alloc_key, &this->vector[i], other.vector[i]);
+		//}
+		std::copy(other.vector, other.vector + this->num_elems, this->vector);
 	}
 
 	void p_move(WilliamHeap& other) {
@@ -102,8 +104,10 @@ protected:
 		
 		new_vector = alloc_key_traits::allocate(alloc_key, new_capacity, this->vector);
 		if (new_vector != this->vector) {
-			for (std::size_t i = 0; i < this->num_elems; ++i)
-				alloc_key_traits::construct(alloc_key, &new_vector[i], std::move(this->vector[i]));
+			//for (std::size_t i = 0; i < this->num_elems; ++i)
+			//	alloc_key_traits::construct(alloc_key, &new_vector[i], std::move(this->vector[i]));
+			//memcpy((void*) new_vector, (const void*)this->vector, std::size_t(this->num_elems * sizeof(T)));
+			std::move(this->vector, this->vector + this->num_elems, new_vector);
 
 			alloc_key_traits::deallocate(alloc_key, this->vector, this->capacity);
 			this->capacity = new_capacity;
