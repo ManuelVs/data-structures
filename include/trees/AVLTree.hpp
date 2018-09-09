@@ -196,4 +196,8 @@ public:
 	bool contains(Key const& key) const {
 		return p_contains(root, key);
 	}
+
+	bool count(Key const& key) const {
+		return p_contains(root, key) ? 1 : 0;
+	}
 };

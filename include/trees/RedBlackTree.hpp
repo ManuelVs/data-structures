@@ -273,4 +273,7 @@ public:
 		root = p_erase(root, key);
 	}
 
+	bool count(Key const& key) {
+		return p_contains(root, key) ? 1 : 0;
+	}
 };
