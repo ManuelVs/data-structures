@@ -9,3 +9,11 @@ TEST(AVLTreeTest, Construct) {
 TEST(AVLTreeTest, Insert1) {
     insert1_test<AVLTree<int>>();
 }
+
+TEST(AVLTreeTest, Insert2) {
+    insert2_test<AVLTree<int>>();
+}
+
+TEST(AVLTreeTest, BigInsert1) {
+    big_insert1_test<AVLTree<int>>();
+}
