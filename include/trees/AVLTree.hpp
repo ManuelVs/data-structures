@@ -47,41 +47,49 @@ protected:
 	}
 
 	Node* p_create(Node* left, Key const& elem, Node* right) {
-		return p_create_recycle(left, elem, right, new Node);
+		Node* node = new Node;
+		return p_create_recycle(left, elem, right, node);
 	}
 
 	Node* p_equilLeft(Node* l, Key const& y, Node* r, Node* recycle) {
 		Node* ll = l->left;
 		Node* lr = l->right;
-		Key const& x = l->e;
+		Key x = l->e;
 		if (p_height(ll) >= p_height(lr)) {
 			//Rotacion LL
-			return p_create_recycle(ll, x, p_create_recycle(lr, y, r, l), recycle);
+			Node* newlr = p_create_recycle(lr, y, r, l);
+			return p_create_recycle(ll, x, newlr, recycle);
 		}
 		else {
 			//Rotacion LR
 			Node* lrl = lr->left;
 			Node* lrr = lr->right;
-			Key const& z = l->right->e;
+			Key z = l->right->e;
 
-			return p_create_recycle(p_create(ll, x, lrl), z, p_create_recycle(lrr, y, r, l), recycle);
+			Node* newll = p_create_recycle(ll, x, lrl, lr);
+			Node* newlr = p_create_recycle(lrr, y, r, l);
+			return p_create_recycle(newll, z, newlr, recycle);
 		}
 	}
 
 	Node* p_equilRight(Node* l, Key const& y, Node* r, Node* recycle) {
 		Node* rl = r->left;
 		Node* rr = r->right;
-		Key const& x = r->e;
+		Key x = r->e;
 
 		if (p_height(rr) >= p_height(rl)) {
 			//Rotacion RR
-			return p_create_recycle(p_create_recycle(l, y, rl, recycle), x, rr, r);
+			Node* newrl = p_create_recycle(l, y, rl, recycle);
+			return p_create_recycle(newrl, x, rr, r);
 		}
 		else {
 			Node* rll = rl->left;
 			Node* rlr = rl->right;
-			Key const& z = rl->e;
-			return p_create_recycle(p_create_recycle(l, y, rll, recycle), z, p_create(rlr, x, rr), r);
+			Key z = rl->e;
+
+			Node* newrr = p_create_recycle(rlr, x, rr, rl);
+			Node* newrl = p_create_recycle(l, y, rll, recycle);
+			return p_create_recycle(newrl, z, newrr, r);
 		}
 	}
 
@@ -115,10 +123,12 @@ protected:
 		if (p_empty(node)) return node;
 		
 		if (elem < node->e) {
-			return p_equil(p_erase(node->left, elem), node->e, node->right, node);
+			Node* newl = p_erase(node->left, elem);
+			return p_equil(newl, node->e, node->right, node);
 		}
 		else if (elem > node->e) {
-			return p_equil(node->left, node->e, p_erase(node->right, elem), node);
+			Node* newr = p_erase(node->right, elem);
+			return p_equil(node->left, node->e, newr, node);
 		}
 		else {
 			//Soy yo
