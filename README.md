@@ -4,8 +4,6 @@ Some custom implementations of famous data structures in C++.
 My intention is to implement usable data structures and provide a similar interface to the STL.  
 Also, I want to provide useful Unit Test and comparison benchmarks between my implementation and g++ implementation, using GoogleTest and GoogleBenchmarks C++ libraries.
 
-You can see my progress in [this Trello board](https://trello.com/b/fksOG6A9/data-structures).
-
 ## Heaps
 
 The heaps implemented in this library has the following interface:
